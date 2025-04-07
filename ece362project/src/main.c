@@ -2,9 +2,11 @@
 #include <math.h>   // for M_PI
 #include <stdint.h>
 #include <stdio.h>
+#include "lcd.h"
+#include "TFTLCD.h"
 
 void nano_wait(int);
-void autotest();
+void internal_clock();
 
 //=============================================================================
 // Part 1: 7-segment display update with DMA
@@ -19,7 +21,6 @@ extern const char font[];
 void print(const char str[]);
 // Print a floating-point value.
 void printfloat(float f);
-M_PI = 3.14159156;
 
 
 //============================================================================
@@ -217,7 +218,7 @@ void EXTI0_1_IRQHandler(){
   EXTI->PR = (EXTI_PR_PR0);
   //EXTI->PR |= EXTI_PR_PR1;
   init_tim6();
-
+}
 
 
   // ------------------------------------------------------------------------------------------
@@ -241,7 +242,7 @@ void EXTI0_1_IRQHandler(){
     GPIOC->PUPDR |=  (0b01 << (0 * 2)); // pull-up for PC0
     GPIOC->PUPDR &= ~(0b11 << (1 * 2));
     GPIOC->PUPDR |=  (0b01 << (1 * 2)); // pull-up for PC1
-
+}
 
 // I2C START
 // SDA is supposed to go low while SCL is high
@@ -261,7 +262,7 @@ void i2c_start(void) {
     GPIOC->ODR   &= ~(1 << 1); // SCL = 0
 
     nano_wait(1000);
-
+}
     // I2C STOP
 // SDA high while SCL is high
 void i2c_stop(void) {
@@ -277,13 +278,13 @@ void i2c_stop(void) {
     nano_wait(1000);
 
 }
-}
-
-}
 
 
 
-}
+
+
+
+
 
 int main(void) {
     internal_clock();
@@ -299,16 +300,27 @@ int main(void) {
 
    
 
-    enable_ports();
+    // enable_ports();
     setup_dma();
     enable_dma();
+    i2c_init_gpio();
+    i2c_start();
+    i2c_stop();
 
-#define TEST_DAC
-#ifdef TEST_DAC
-    for(;;) {
-        printfloat(2.95 * volume / 4096);
-    }
-#endif
+    setbuf(stdin,0);
+    setbuf(stdout,0);
+    setbuf(stderr,0);
+    LCD_Setup();
+    LCD_Clear(0xFFFF);
+    moving_rect();
+    // moving_rect();
+
+    #define TEST_DAC
+    #ifdef TEST_DAC
+        for(;;) {
+            printfloat(2.95 * volume / 4096);
+        }
+    #endif
 
     init_wavetable();
     setup_dac();
