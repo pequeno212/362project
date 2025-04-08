@@ -307,12 +307,14 @@ int main(void) {
     i2c_start();
     i2c_stop();
 
+    //TFT LDC instantiation
+
     setbuf(stdin,0);
     setbuf(stdout,0);
     setbuf(stderr,0);
     LCD_Setup();
     LCD_Clear(0xFFFF);
-    moving_rect();
+    moving_rect(0, 0, 300, 100, 0);
     // moving_rect();
 
     #define TEST_DAC

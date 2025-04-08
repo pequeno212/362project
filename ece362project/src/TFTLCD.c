@@ -9,6 +9,7 @@
 
 void nano_wait(int);
 void internal_clock();
+int get_new_len(int x, int x_prev, int x_len, int y, int num_layers);
 
 #ifdef SHELL
 #include "stm32f0xx.h"
@@ -17,6 +18,7 @@ void internal_clock();
 #include "fifo.h"
 #include "tty.h"
 #include <stdio.h>
+#include <math.h>
 
 #define FIFOSIZE 16
 char serfifo[FIFOSIZE];
@@ -78,38 +80,59 @@ void init_lcd_spi(){
 //============================================================================
 // START OF LCD DISPLAY
 //============================================================================
-void moving_rect(){
-    int X_MAX = 240; //the lcd is 240 pixels wide 320 pixels long
-    int Y_MAX = 320;
-    int x = 0;
-    int y = Y_MAX-20;
-    int x_len = 100;
-    int y_len = 20;
+void moving_rect(int x, int x_prev, int y, int x_len, int delay){
+
+    int X_MAX = 240; //the lcd is 240 pixels wide
+    int pressed = 0; //interupt detecting a button
     int moving_left = 0;
     int moving_right = 1;
-    while(x_len > 0){
-        // nano_wait(20000000);
-        if(moving_right){
-            LCD_DrawFillRectangle(x, y, x+x_len, y+y_len, 0x0f0f);
-            LCD_DrawFillRectangle(0, y, x, y+y_len, 0xFFFF);
-            x++;
-            if(x+x_len >= X_MAX-2){
-                moving_left = 1;
-                moving_right = 0;
-            }            
+    int num_layers = 0;
+
+    while(x_len > 0 & y >= 0){ //loop stops if the width is less than 0 or if you've reached the top of the stack
+        nano_wait(20000000);
+        if(pressed){ //if the button is pressed, we will freeze the rectangle, and call the function recursivly with a new stack
+            int next_x_len = get_new_len(x, x_prev, x_len, y, num_layers);
+            moving_rect(x, x, y-20, next_x_len, delay++);
         }
-        else if(moving_left){
-            LCD_DrawFillRectangle(x, y, x+x_len, y+y_len, 0x0f0f);
-            LCD_DrawFillRectangle(x+x_len, y, X_MAX, y+y_len, 0xFFFF);
-            x--;
-            if(x <= 2){
-                moving_left = 0;
-                moving_right = 1;
-            }            
+        else{
+            if(moving_right){
+                LCD_DrawFillRectangle(x, y, x+x_len, y+20, 0x0f0f);
+                LCD_DrawFillRectangle(0, y, x, y+20, 0xFFFF);
+                x++;
+                if(x+x_len >= X_MAX-2){
+                    moving_left = 1;
+                    moving_right = 0;
+                }            
+            }
+            else if(moving_left){
+                LCD_DrawFillRectangle(x, y, x+x_len, y+20, 0x0f0f);
+                LCD_DrawFillRectangle(x+x_len, y, X_MAX, y+20, 0xFFFF);
+                x--;
+                if(x <= 2){
+                    moving_left = 0;
+                    moving_right = 1;
+                }            
+            }
         }
     }
+    return;
 }
-//============================================================================
+
+int get_new_len(int x, int x_prev, int x_len, int y, int num_layers){ //this function will return an int storing the horizontal length of the next stack
+    if(num_layers == 0){return x_len;} //base case, if we're on the first stack, the next stack length will always equal the 1st
+    if(x == x_prev){return x_len;} //next base case, when the 2 stacks perfectly align
+
+    int offset = abs(x-x_prev); //get offset
+    if(x > x_prev){ //if top stack is right of bottom stack, clear out the right part that overflows
+        LCD_DrawFillRectangle(x_prev + x_len, y, x_prev+x_len+offset, y+20, 0xFFFF);
+    }
+    else{ //otherwise, we will clear out the left part that overflows
+        LCD_DrawFillRectangle(x_prev - offset, y, x_prev, y+20, 0xFFFF);
+    }
+    return x_len-offset;
+
+}
+    //============================================================================
 // END OF LCD DISPLAY
 //============================================================================
 
