@@ -218,7 +218,7 @@ void EXTI0_1_IRQHandler(){
   //EXTI->PR |= EXTI_PR_PR1;
   init_tim6();
 
-
+}
 
   // ------------------------------------------------------------------------------------------
   // ------------------------------------------ BLAS ------------------------------------------
@@ -229,7 +229,7 @@ void EXTI0_1_IRQHandler(){
 
   // Initialize PC0 (SDA) and PC1 (SCL) for I2C
 
-  void i2c_init_gpio(void) {
+void i2c_init_gpio(void) {
     RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
 
     // Set PC0 and PC1 as i/p
@@ -277,6 +277,7 @@ void i2c_stop(void) {
     nano_wait(1000);
 
 }
+
 
 int main(void) {
     internal_clock();
