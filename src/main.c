@@ -241,7 +241,7 @@ void EXTI0_1_IRQHandler(){
     GPIOC->PUPDR |=  (0b01 << (0 * 2)); // pull-up for PC0
     GPIOC->PUPDR &= ~(0b11 << (1 * 2));
     GPIOC->PUPDR |=  (0b01 << (1 * 2)); // pull-up for PC1
-
+}
 
 // I2C START
 // SDA is supposed to go low while SCL is high
@@ -261,7 +261,7 @@ void i2c_start(void) {
     GPIOC->ODR   &= ~(1 << 1); // SCL = 0
 
     nano_wait(1000);
-
+}
     // I2C STOP
 // SDA high while SCL is high
 void i2c_stop(void) {
@@ -275,13 +275,6 @@ void i2c_stop(void) {
 
     GPIOC->MODER &= ~(0b11 << (0 * 2)); // SDA = i/p (high)
     nano_wait(1000);
-
-}
-}
-
-}
-
-
 
 }
 
