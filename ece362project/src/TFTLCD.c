@@ -83,16 +83,19 @@ void init_lcd_spi(){
 void moving_rect(int x, int x_prev, int y, int x_len, int delay){
 
     int X_MAX = 240; //the lcd is 240 pixels wide
-    int pressed = 0; //interupt detecting a button
     int moving_left = 0;
     int moving_right = 1;
     int num_layers = 0;
 
     while(x_len > 0 & y >= 0){ //loop stops if the width is less than 0 or if you've reached the top of the stack
         nano_wait(20000000);
-        if(pressed){ //if the button is pressed, we will freeze the rectangle, and call the function recursivly with a new stack
+        // LCD_DrawFillRectangle(x, y, x+x_len, y+20, 0x0f0f);
+        if(GPIOB -> ODR & (1 << 7)){ //if the button is pressed, we will freeze the rectangle, and call the function recursivly with a new stack
+            LCD_DrawFillRectangle(x, y, x+200, y+20, 0x0f0f);
+            GPIOB -> BSRR = GPIO_BSRR_BR_7;
             int next_x_len = get_new_len(x, x_prev, x_len, y, num_layers);
             moving_rect(x, x, y-20, next_x_len, delay++);
+        
         }
         else{
             if(moving_right){
@@ -136,6 +139,45 @@ int get_new_len(int x, int x_prev, int x_len, int y, int num_layers){ //this fun
 // END OF LCD DISPLAY
 //============================================================================
 
+// INTERRUPT HANDLER 
+
+
+
+void initb (){
+    RCC -> AHBENR |= RCC_AHBENR_GPIOBEN; //enable b
+    
+    
+    GPIOB -> MODER &= ~ 0xFFFFFF; //resets 11-0 
+    GPIOB -> PUPDR &= ~ 0xFFFFFF; //resets pupdr
+    GPIOB -> PUPDR |= GPIO_PUPDR_PUPDR0_1; //pb0 as pulldown
+    GPIOB -> MODER |= GPIO_MODER_MODER7_0; //set pb7 to ouptut
+    GPIOB -> BSRR = GPIO_BSRR_BR_7; //reset pb7 to 0
+    
+}
+
+void togglexn() {
+    GPIOB -> BSRR = GPIO_BSRR_BS_7; //switched toggle to just turn on, will be turned off when new level is added
+}
+
+void init_exti() {
+    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGCOMPEN; //enable syscfg subsystem
+  
+    SYSCFG -> EXTICR[0] &= ~ SYSCFG_EXTICR1_EXTI0;
+    SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PB; //selects port b to syscfg subsystem
+  
+    EXTI -> RTSR |= EXTI_RTSR_TR0; //configures extir_rtsr register
+    EXTI -> IMR |= EXTI_IMR_MR0; //configures IMR register
+    
+    NVIC -> ISER[0] |= (1 << EXTI0_1_IRQn); //enable interrupts
+  
+  }
+  
+  void EXTI0_1_IRQHandler(){
+  
+    EXTI->PR = (EXTI_PR_PR0);
+    LCD_DrawFillRectangle(0, 0, 200, 200, 0xF000);
+    togglexn(); //pressed variable
+  }
 
 // int main() {
 //     internal_clock();
