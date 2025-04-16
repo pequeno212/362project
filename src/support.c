@@ -1,6 +1,6 @@
 #include "stm32f0xx.h"
-#include <stdio.h>
 #include <string.h> // for memmove()
+#include <stdio.h> // for memmove()
 
 void nano_wait(unsigned int n) {
     asm(    "        mov r0,%0\n"
@@ -46,6 +46,10 @@ const char font[] = {
     0x5f, 0x7c, 0x58, 0x5e, 0x79, 0x71, 0x6f, 0x74, 0x10, 0x0e, 0x00, 0x30, 0x00,
     0x54, 0x5c, 0x73, 0x7b, 0x50, 0x6d, 0x78, 0x1c, 0x00, 0x00, 0x00, 0x6e, 0x00
 };
+
+//=============================================================================
+// Part 1: 7-segment display update with DMA
+//=============================================================================
 
 extern uint16_t msg[8];
 
@@ -93,6 +97,10 @@ void clear_display(void) {
     }
 }
 
+//=============================================================================
+// Part 2: Debounced keypad scanning.
+//=============================================================================
+
 // 16 history bytes.  Each byte represents the last 8 samples of a button.
 uint8_t hist[16];
 char queue[2];  // A two-entry queue of button press/release events.
@@ -138,7 +146,7 @@ int read_rows()
 char get_key_event(void) {
     for(;;) {
         asm volatile ("wfi");   // wait for an interrupt
-        if (queue[qout] != 0)
+       if (queue[qout] != 0)
             break;
     }
     return pop_queue();
@@ -230,25 +238,9 @@ float getfloat(void)
     return f;
 }
 
-// Read an RGB specification.
-int getrgb(void)
-{
-    int rgb = 0;
-    clear_display();
-    for(int n=0; n<6; n++) {
-        int key = get_keypress();
-        int digit;
-        if (key < '0' || key > '9') {
-            n--; // ignore it and do over
-            continue;
-        }
-        digit = key - '0';
-        rgb |= digit << (20 - 4*n);
-        set_digit_segments(n, font[key]);
-    }
-    return rgb;
-}
-
+//===========================================================================
+// Part 4: Create an analog sine wave of a specified frequency
+//===========================================================================
 void set_freq(int chan, float freq);
 
 void dialer(void)
