@@ -1,9 +1,9 @@
-  // ------------------------------------------------------------------------------------------
-  // ------------------------------------------ EVAN ------------------------------------------
-  
-  //============================================================================
-  // TFTLCD stepup + display
-  //============================================================================
+// ------------------------------------------------------------------------------------------
+// ------------------------------------------ EVAN ------------------------------------------
+
+//============================================================================
+// TFTLCD stepup + display
+//============================================================================
 #define SHELL
 
 
@@ -80,49 +80,46 @@ void init_lcd_spi(){
 //============================================================================
 // START OF LCD DISPLAY
 //============================================================================
-void moving_rect(int x, int x_prev, int y, int x_len, int delay){
+int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, int game_over){
+    if(game_over != 0){
+        return game_over;
+    }
 
     int X_MAX = 240; //the lcd is 240 pixels wide
     int moving_left = 0;
     int moving_right = 1;
-    int num_layers = 0;
 
-    while(x_len > 0 & y >= 0){ //loop stops if the width is less than 0 or if you've reached the top of the stack
-        nano_wait(20000000);
-        // LCD_DrawFillRectangle(x, y, x+x_len, y+20, 0x0f0f);
-        if(GPIOB -> ODR & (1 << 7)){ //if the button is pressed, we will freeze the rectangle, and call the function recursivly with a new stack
-            LCD_DrawFillRectangle(x, y, x+200, y+20, 0x0f0f);
-            GPIOB -> BSRR = GPIO_BSRR_BR_7;
-            int next_x_len = get_new_len(x, x_prev, x_len, y, num_layers);
-            moving_rect(x, x, y-20, next_x_len, delay++);
-        
+    while(!(GPIOB -> ODR & (1 << 7))){ //while the button isnt pressed, the block will shift
+        nano_wait(delay);
+        if(moving_right){
+            LCD_DrawFillRectangle(x, y, x+x_len, y+20, 0x0f0f);
+            LCD_DrawFillRectangle(0, y, x, y+20, 0xFFFF);
+            x++;
+            if(x+x_len >= X_MAX-2){
+                moving_left = 1;
+                moving_right = 0;
+            }            
         }
-        else{
-            if(moving_right){
-                LCD_DrawFillRectangle(x, y, x+x_len, y+20, 0x0f0f);
-                LCD_DrawFillRectangle(0, y, x, y+20, 0xFFFF);
-                x++;
-                if(x+x_len >= X_MAX-2){
-                    moving_left = 1;
-                    moving_right = 0;
-                }            
-            }
-            else if(moving_left){
-                LCD_DrawFillRectangle(x, y, x+x_len, y+20, 0x0f0f);
-                LCD_DrawFillRectangle(x+x_len, y, X_MAX, y+20, 0xFFFF);
-                x--;
-                if(x <= 2){
-                    moving_left = 0;
-                    moving_right = 1;
-                }            
-            }
+        else if(moving_left){
+            LCD_DrawFillRectangle(x, y, x+x_len, y+20, 0x0f0f);
+            LCD_DrawFillRectangle(x+x_len, y, X_MAX, y+20, 0xFFFF);
+            x--;
+            if(x <= 2){
+                moving_left = 0;
+                moving_right = 1;
+            }            
         }
     }
-    return;
+    GPIOB -> BSRR = GPIO_BSRR_BR_7;
+    // nano_wait(100000000);
+    int next_x_len = get_new_len(x, x_prev, x_len, y, num_layers);
+    if(next_x_len <= 0){game_over = -1;}
+    moving_rect(x, x, y-20, next_x_len, delay-1000000, num_layers+1, game_over);
+    return game_over;
 }
 
 int get_new_len(int x, int x_prev, int x_len, int y, int num_layers){ //this function will return an int storing the horizontal length of the next stack
-    if(num_layers == 0){return x_len;} //base case, if we're on the first stack, the next stack length will always equal the 1st
+    if(num_layers == 1){return x_len;} //base case, if we're on the first stack, the next stack length will always equal the 1st
     if(x == x_prev){return x_len;} //next base case, when the 2 stacks perfectly align
 
     int offset = abs(x-x_prev); //get offset
@@ -151,7 +148,7 @@ void initb (){
     GPIOB -> PUPDR &= ~ 0xFFFFFF; //resets pupdr
     GPIOB -> PUPDR |= GPIO_PUPDR_PUPDR0_1; //pb0 as pulldown
     GPIOB -> MODER |= GPIO_MODER_MODER7_0; //set pb7 to ouptut
-    GPIOB -> BSRR = GPIO_BSRR_BR_7; //reset pb7 to 0
+    GPIOB -> BSRR |= GPIO_BSRR_BR_7; //reset pb7 to 0
     
 }
 
@@ -160,34 +157,23 @@ void togglexn() {
 }
 
 void init_exti() {
-    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGCOMPEN; //enable syscfg subsystem
-  
+    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN; //enable syscfg subsystem
+    //RCC_APB2ENR_SYSCFGCOMPEN
+
     SYSCFG -> EXTICR[0] &= ~ SYSCFG_EXTICR1_EXTI0;
     SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PB; //selects port b to syscfg subsystem
-  
+
     EXTI -> RTSR |= EXTI_RTSR_TR0; //configures extir_rtsr register
     EXTI -> IMR |= EXTI_IMR_MR0; //configures IMR register
     
     NVIC -> ISER[0] |= (1 << EXTI0_1_IRQn); //enable interrupts
-  
-  }
-  
-  void EXTI0_1_IRQHandler(){
-  
-    EXTI->PR = (EXTI_PR_PR0);
-    LCD_DrawFillRectangle(0, 0, 200, 200, 0xF000);
-    togglexn(); //pressed variable
-  }
 
-// int main() {
-//     internal_clock();
-//     setbuf(stdin,0);
-//     setbuf(stdout,0);
-//     setbuf(stderr,0);
-//     LCD_Setup();
-//     LCD_Clear(0xFFFF);
-//     moving_rect();
-//     // moving_rect();
-//     command_shell();
-// }
+}
+
+void EXTI0_1_IRQHandler(){
+
+    EXTI->PR = (EXTI_PR_PR0);
+    togglexn(); //pressed variable
+}
+
 #endif
