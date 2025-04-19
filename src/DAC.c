@@ -7,63 +7,6 @@ void nano_wait(int);
 
 
 //=============================================================================
-// Part 1: 7-segment display update with DMA
-//=============================================================================
-
-// 16-bits per digit.
-// The most significant 8 bits are the digit number.
-// The least significant 8 bits are the segments to illuminate.
-uint16_t msg[8] = { 0x0000,0x0100,0x0200,0x0300,0x0400,0x0500,0x0600,0x0700 };
-extern const char font[];
-// Print an 8-character string on the 8 digits
-void print(const char str[]);
-// Print a floating-point value.
-void printfloat(float f);
-M_PI = 3.14159156;
-
-
-
-//============================================================================
-// enable_ports()
-//============================================================================
-void enable_ports(void) {
-
-    RCC -> AHBENR |= RCC_AHBENR_GPIOCEN;
-    RCC -> AHBENR |= RCC_AHBENR_GPIOBEN;
-
-    GPIOB -> MODER &= ~ 0x6FFFFF; // resets pb 0-10
-    GPIOB -> MODER |= 0x155555; // sets pb 0-10 as output
-
-    GPIOC -> MODER &= ~ 0xFFFF; // resets pc 0-7
-    GPIOC -> MODER |= 0x5500; //sets 4-7 as output
-    GPIOC -> OTYPER |= 0xF0; //sets pc4-7 to open drain
-    GPIOC -> PUPDR |= 0x55; //sets 0-3 as pulled down
-}
-
-//============================================================================
-// setup_dma() + enable_dma()
-//============================================================================
-void setup_dma(void) {
-    //channel 5
-
-    RCC -> AHBENR |= RCC_AHBENR_DMA1EN;
-    DMA1_Channel5 -> CCR &= ~ DMA_CCR_EN;
-    DMA1_Channel5 -> CMAR = (uint32_t)&msg;
-    DMA1_Channel5 -> CPAR = (uint32_t) &GPIOB->ODR;
-    DMA1_Channel5 -> CNDTR = 8;
-    DMA1_Channel5 -> CCR |= DMA_CCR_DIR;
-    //DMA1_Channel5 -> CCR |= DMA_CCR_TCIE; //interrup when done (not sure if this is right)
-    //DMA1_Channel5 -> CCR &= ~ DMA_CCR_MSIZE_1 | DMA_CCR_PSIZE_1;
-    DMA1_Channel5 -> CCR |= DMA_CCR_MINC | DMA_CCR_MSIZE_0 | DMA_CCR_PSIZE_0 | DMA_CCR_CIRC;
-
-}
-
-void enable_dma(void) {
-    DMA1_Channel5 -> CCR |= DMA_CCR_EN;
-}
-
-
-//=============================================================================
 // Part 3: Analog-to-digital conversion for a volume level.
 //=============================================================================
 uint32_t volume = 2048;

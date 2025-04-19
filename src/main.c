@@ -10,23 +10,16 @@ void internal_clock();
 
 
 int main(void) {
-    internal_clock();
 
-   
-
-    enable_ports();
-    setup_dma();
-    enable_dma();
-
-    init_wavetable();
+    
     setup_dac();
+    internal_clock();
+    init_wavetable();
+   
+    set_freq(0, 440.0)
 
     //call init_tim6 when interrupt is enabled
-    init_tim6();
+    init_tim6();  
 
 
-
-
-    // Have fun.
-    dialer();
 }
