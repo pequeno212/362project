@@ -80,8 +80,11 @@ void init_lcd_spi(){
 //============================================================================
 // START OF LCD DISPLAY
 //============================================================================
-int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, int game_over){
+int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, int game_over, int count){
     if(game_over != 0){
+        return game_over; //even when hardcoded to -1, doesnt do the correct thing in main
+    }
+    if (count == 15){
         return game_over;
     }
 
@@ -111,10 +114,11 @@ int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, 
         }
     }
     GPIOB -> BSRR = GPIO_BSRR_BR_7;
+    count += 1;
     // nano_wait(100000000);
     int next_x_len = get_new_len(x, x_prev, x_len, y, num_layers);
     if(next_x_len <= 0){game_over = -1;}
-    moving_rect(x, x, y-20, next_x_len, delay-1000000, num_layers+1, game_over);
+    game_over = moving_rect(x, x, y-20, next_x_len, delay-1000000, num_layers+1, game_over, count);
     return game_over;
 }
 

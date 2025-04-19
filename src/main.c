@@ -22,8 +22,12 @@ int main(void) {
     LCD_Setup();
     LCD_Clear(0xFFFF);
 
-    int game = moving_rect(0, 0, 320, 100, 10000000, 0, 0);
+    int game = moving_rect(0, 0, 320, 100, 10000000, 0, 0, 0);
     if(game == -1){
         LCD_Clear(0xF000);
     }
+    if(game == 0){
+        LCD_Clear(0x0000);
+    }
+    //LCD_Clear(0xF000);
 }
