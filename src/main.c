@@ -23,10 +23,10 @@ int main(void) {
     LCD_Clear(0xFFFF);
 
     int game = moving_rect(0, 0, 320, 100, 10000000, 0, 0, 0);
-    if(game == -1){
+    if(game == -1){ //game is lost
         LCD_Clear(0xF000);
     }
-    if(game == 0){
+    if(game == 0){ //game is won
         LCD_Clear(0x0000);
     }
     //LCD_Clear(0xF000);
