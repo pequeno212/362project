@@ -35,10 +35,13 @@ int main(void) {
     if(game == -1){ //game is lost
         LCD_Clear(0xF000);
         
+        
     }
     if(game == 0){ //game is won
         init_tim6(); //sound when game is won, can be changed with set_freq
         LCD_Clear(0x0000);
+        // nano_wait(3000000); //does not wait for 3 seconds
+        // stop_tim6();
        
     }
     //LCD_Clear(0xF000);

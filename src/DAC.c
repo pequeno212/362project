@@ -133,6 +133,12 @@ void init_tim6(void) {
     TIM6 -> CR1 |= TIM_CR1_CEN;
 }
 
+
+void stop_tim6(void){
+
+    TIM6 -> CR1 &= ~ TIM_CR1_CEN;
+
+}
 /** 
  * pseudocode: exti, have interrupts unmasekd when win == true, right now its set for B0, so ideally the rest of the code would set b0 to 1 to trigger audio
 //  */
