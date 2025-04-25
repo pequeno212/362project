@@ -80,7 +80,7 @@ void init_lcd_spi(){
 //============================================================================
 // START OF LCD DISPLAY
 //============================================================================
-int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, int game_over, int count){
+int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, int game_over, int count, int color){
     if(game_over != 0){
         return game_over; //even when hardcoded to -1, doesnt do the correct thing in main
     }
@@ -88,6 +88,18 @@ int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, 
         return game_over;
     }
 
+    // if(GPIOB -> ODR & (1 << 9)){
+    //      //switch colors
+    //      LCD_DrawFillRectangle(0, 0, 200, 200, 0x0000);
+    //      color = color + 0x5555;
+    //      if (color > 0xFFFF){
+    //         color = 0;
+    //      }
+    //      LCD_Clear(color);
+    //      nano_wait(1000000000);
+    //      GPIOB -> BSRR = GPIO_BSRR_BR_9;
+    // }
+    
     int X_MAX = 240; //the lcd is 240 pixels wide
     int moving_left = 0;
     int moving_right = 1;
@@ -96,7 +108,7 @@ int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, 
         nano_wait(delay);
         if(moving_right){
             LCD_DrawFillRectangle(x, y, x+x_len, y+20, 0x0f0f);
-            LCD_DrawFillRectangle(0, y, x, y+20, 0xFFFF);
+            LCD_DrawFillRectangle(0, y, x, y+20, color);
             x++;
             if(x+x_len >= X_MAX-2){
                 moving_left = 1;
@@ -105,7 +117,7 @@ int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, 
         }
         else if(moving_left){
             LCD_DrawFillRectangle(x, y, x+x_len, y+20, 0x0f0f);
-            LCD_DrawFillRectangle(x+x_len, y, X_MAX, y+20, 0xFFFF);
+            LCD_DrawFillRectangle(x+x_len, y, X_MAX, y+20, color);
             x--;
             if(x <= 2){
                 moving_left = 0;
@@ -113,12 +125,13 @@ int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, 
             }            
         }
     }
-    GPIOB -> BSRR = GPIO_BSRR_BR_7;
+    GPIOB -> BSRR = GPIO_BSRR_BR_7; //reset bits was bsrr before but idk why
+    
     count += 1;
     // nano_wait(100000000);
     int next_x_len = get_new_len(x, x_prev, x_len, y, num_layers);
     if(next_x_len <= 0){game_over = -1;}
-    game_over = moving_rect(x, x, y-20, next_x_len, delay-1000000, num_layers+1, game_over, count);
+    game_over = moving_rect(x, x, y-20, next_x_len, delay-1000000, num_layers+1, game_over, count, color);
     return game_over;
 }
 
@@ -151,8 +164,12 @@ void initb (){
     GPIOB -> MODER &= ~ 0xFFFFFF; //resets 11-0 
     GPIOB -> PUPDR &= ~ 0xFFFFFF; //resets pupdr
     GPIOB -> PUPDR |= GPIO_PUPDR_PUPDR0_1; //pb0 as pulldown
+    GPIOB -> PUPDR |= GPIO_PUPDR_PUPDR6_1; //pb6 as pulldown
     GPIOB -> MODER |= GPIO_MODER_MODER7_0; //set pb7 to ouptut
     GPIOB -> BSRR |= GPIO_BSRR_BR_7; //reset pb7 to 0
+    GPIOB -> MODER |= GPIO_MODER_MODER9_0; //set pb9 to ouptut
+    GPIOB -> BSRR |= GPIO_BSRR_BR_9; //reset pb9 to 0
+    
     
 }
 
@@ -160,17 +177,28 @@ void togglexn() {
     GPIOB -> BSRR = GPIO_BSRR_BS_7; //switched toggle to just turn on, will be turned off when new level is added
 }
 
+void togglexnSecond(){
+    GPIOB -> BSRR = GPIO_BSRR_BS_9;
+}
+
 void init_exti() {
     RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN; //enable syscfg subsystem
     //RCC_APB2ENR_SYSCFGCOMPEN
 
     SYSCFG -> EXTICR[0] &= ~ SYSCFG_EXTICR1_EXTI0;
+    SYSCFG -> EXTICR[0] &= ~ SYSCFG_EXTICR2_EXTI6;
+
     SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PB; //selects port b to syscfg subsystem
+    SYSCFG->EXTICR[1] |= SYSCFG_EXTICR2_EXTI6_PB; //selects port b6 to syscfg subsystem
 
     EXTI -> RTSR |= EXTI_RTSR_TR0; //configures extir_rtsr register
+    EXTI -> RTSR |= EXTI_RTSR_TR6; //configures extir_rtsr register
+
     EXTI -> IMR |= EXTI_IMR_MR0; //configures IMR register
+    EXTI -> IMR |= EXTI_IMR_MR6; //configures IMR register
     
     NVIC -> ISER[0] |= (1 << EXTI0_1_IRQn); //enable interrupts
+    NVIC -> ISER[0] |= (1 << EXTI4_15_IRQn);
 
 }
 
@@ -178,6 +206,12 @@ void EXTI0_1_IRQHandler(){
 
     EXTI->PR = (EXTI_PR_PR0);
     togglexn(); //pressed variable
+}
+
+void EXTI4_15_IRQHandler(){
+
+    EXTI -> PR = (EXTI_PR_PR6);
+    togglexnSecond(); //interrupt
 }
 
 #endif
