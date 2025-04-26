@@ -128,7 +128,7 @@ int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, 
     GPIOB -> BSRR = GPIO_BSRR_BR_7; //reset bits was bsrr before but idk why
     
     count += 1;
-    // nano_wait(100000000);
+    nano_wait(300000000);
     int next_x_len = get_new_len(x, x_prev, x_len, y, num_layers);
     if(next_x_len <= 0){game_over = -1;}
     game_over = moving_rect(x, x, y-20, next_x_len, delay-1000000, num_layers+1, game_over, count, color);
@@ -140,14 +140,28 @@ int get_new_len(int x, int x_prev, int x_len, int y, int num_layers){ //this fun
     if(x == x_prev){return x_len;} //next base case, when the 2 stacks perfectly align
 
     int offset = abs(x-x_prev); //get offset
+    int new_len = x_len - offset;
+    if(new_len <= 0){return 0;}
+
     if(x > x_prev){ //if top stack is right of bottom stack, clear out the right part that overflows
-        LCD_DrawFillRectangle(x_prev + x_len, y, x_prev+x_len+offset, y+20, 0xFFFF);
+        LCD_DrawFillRectangle(x_prev + x_len, y, x+x_len, y+20, 0xFFFF);
     }
     else{ //otherwise, we will clear out the left part that overflows
-        LCD_DrawFillRectangle(x_prev - offset, y, x_prev, y+20, 0xFFFF);
+        LCD_DrawFillRectangle(x, y, x_prev, y+20, 0xFFFF);
     }
-    return x_len-offset;
+    return new_len;
 
+}
+
+void you_win(){
+    LCD_Clear(GREEN);
+    LCD_DrawString(80, 100, BLUE, GREEN, "YOU WIN!!!! :)", 16, 0);
+    return;
+}
+void you_lose(){
+    LCD_Clear(RED);
+    LCD_DrawString(80, 100, WHITE, BLACK, "you lose", 16, 0);
+    return;
 }
     //============================================================================
 // END OF LCD DISPLAY
