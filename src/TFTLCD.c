@@ -24,6 +24,9 @@ int get_new_len(int x, int x_prev, int x_len, int y, int num_layers);
 char serfifo[FIFOSIZE];
 int seroffset = 0;
 
+
+
+
 //============================================================================
 // START OF LCD SETUP
 //============================================================================
@@ -225,7 +228,10 @@ void EXTI0_1_IRQHandler(){
 void EXTI4_15_IRQHandler(){
 
     EXTI -> PR = (EXTI_PR_PR6);
-    togglexnSecond(); //interrupt
+    COLOR_INDEX += 1;
+    if (COLOR_INDEX == 3) {
+        COLOR_INDEX = 0;
+    }
 }
 
 #endif

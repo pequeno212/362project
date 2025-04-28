@@ -6,8 +6,28 @@
 #include "TFTLCD.h"
 #include "dac.h"
 
+
 void nano_wait(int);
 void internal_clock();
+
+
+// themes struct
+typedef struct {
+    uint16_t background;
+    uint16_t block;
+  } Theme;
+  
+
+// theme select menu
+static const Theme themes[] = {
+    {.background = WHITE, .block = BLACK} // B&W
+    {.background = BLUE, .block = RED} // Blue and Red
+    {.background = MAGENTA, .block = WHITE}
+  }
+
+int COLOR_INDEX = 0; //global variable
+
+
 
 int main(void) {
     internal_clock();
@@ -28,10 +48,10 @@ int main(void) {
     setbuf(stdout,0);
     setbuf(stderr,0);
     LCD_Setup();
-    LCD_Clear(0xFFFF);
+    LCD_Clear(themes.bg[COLOR_INDEX]);
 
 
-    int game = moving_rect(0, 0, 320, 100, 10000000, 0, 0, 0, 0xFFFF);
+    int game = moving_rect(0, 0, 320, 100, 10000000, 0, 0, 0, themes.block[COLOR_INDEX]]);
     if(game == -1){ //game is lost
         you_lose();
         
