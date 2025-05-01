@@ -139,6 +139,42 @@ void stop_tim6(void){
     TIM6 -> CR1 &= ~ TIM_CR1_CEN;
 
 }
+
+void sad_music(void){
+
+    set_freq(0, 294.0);
+    init_tim6();
+    nano_wait(1000000000);
+    set_freq(0, 277.0);
+    nano_wait(1000000000);
+    set_freq(0, 261.0);
+    nano_wait(1000000000);
+    set_freq(0, 246.0);
+    nano_wait(1000000000);
+    stop_tim6();
+}
+
+void happy_music(void){
+
+    set_freq(0, 523.0);
+    init_tim6();
+    nano_wait(500000000);
+    set_freq(0, 659.0);
+    nano_wait(500000000);
+    set_freq(0, 784.0);
+    nano_wait(500000000);
+    set_freq(0, 1046.0);
+    nano_wait(1000000000);
+    stop_tim6();
+    nano_wait(250000000);
+    set_freq(0, 784);
+    init_tim6();
+    nano_wait(500000000);
+    set_freq(0,1046);
+    nano_wait(1000000000);
+    stop_tim6();
+
+}
 /** 
  * pseudocode: exti, have interrupts unmasekd when win == true, right now its set for B0, so ideally the rest of the code would set b0 to 1 to trigger audio
 //  */

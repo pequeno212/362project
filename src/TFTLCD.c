@@ -84,17 +84,17 @@ void init_lcd_spi(){
 //============================================================================
 // START OF LCD DISPLAY
 //============================================================================
-int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, int game_over, int *count, int colorBlock, int colorBG){
+int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, int game_over, int *count, int colorBlock, int colorBG, int *level){
     
     if(game_over != 0){ //if game over
         return game_over; //even when hardcoded to -1, doesnt do the correct thing in main
     }
-    if (num_layers == 5){
+    if (num_layers == 15){
         LCD_Clear(colorBG);
         LCD_DrawFillRectangle(x, 300, x+x_len, 320, colorBlock);
         num_layers = 1;
         y = 280;
-        *count = *count + 1;
+        *level = *level + 1;
         //win += 1;
     }
 
@@ -136,11 +136,11 @@ int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, 
         }
     }
     GPIOB -> BSRR = GPIO_BSRR_BR_7; //reset bits was bsrr before but idk why
-    
+    *count = *count + 1;
     nano_wait(300000000);
     int next_x_len = get_new_len(x, x_prev, x_len, y, num_layers, colorBG);
     if(next_x_len <= 0){game_over = -1;}
-    game_over = moving_rect(x, x, y-20, next_x_len, delay-1000000, num_layers+1, game_over, count, colorBlock, colorBG);
+    game_over = moving_rect(x, x, y-20, next_x_len, delay-1000000, num_layers+1, game_over, count, colorBlock, colorBG, level);
     return game_over;
 }
 
@@ -172,11 +172,13 @@ void you_lose(){
     LCD_DrawString(80, 100, WHITE, BLACK, "you lose", 16, 0);
     return;
 }
-void your_score(int score){
+void your_score(int score, int level){
     char buffer[20];
-    sprintf(buffer, "Your score is %d", score);
+    sprintf(buffer, "You got to level %d", level);
     LCD_Clear(YELLOW);
-    LCD_DrawString(80,100, WHITE, BLACK, buffer, 16, 0);
+    LCD_DrawString(40,100, WHITE, BLACK, buffer, 16, 0);
+    sprintf(buffer, "Your score is %d", score);
+    LCD_DrawString(40,140, WHITE, BLACK, buffer, 16, 0);
     return;
 }
     //============================================================================

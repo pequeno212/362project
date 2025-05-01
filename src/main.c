@@ -45,17 +45,25 @@ int main(void) {
     }; //wait until first stack is pressed
 
     int count = 0;
-    int game = moving_rect(0, 0, 320, 100, 10000000, 0, 0, &count, block[COLOR_INDEX], background[COLOR_INDEX]);
-    if(count > 0){
+    int level = 1;
+    int game = moving_rect(0, 0, 320, 100, 10000000, 0, 0, &count, block[COLOR_INDEX], background[COLOR_INDEX], &level);
+    if(level > 1){
          you_win();
          nano_wait(1000000000);
-         your_score(count);
+         your_score(count, level);
+        happy_music();
+
      }
         
     else{
         you_lose();
+
+        sad_music();
+
     }
-        
+
+   
+}       
     /*
     if(game == 0){ //game is won
         init_tim6(); //sound when game is won, can be changed with set_freq
@@ -66,4 +74,3 @@ int main(void) {
     }
         */
     //LCD_Clear(0xF000);
-}
