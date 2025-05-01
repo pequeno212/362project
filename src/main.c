@@ -5,36 +5,22 @@
 #include "lcd.h"
 #include "TFTLCD.h"
 #include "dac.h"
+#include "COLOR_INDEX.h"
 
 
 void nano_wait(int);
 void internal_clock();
 
 
-// themes struct
-typedef struct {
-    uint16_t background;
-    uint16_t block;
-  } Theme;
-  
-
-// theme select menu
-static const Theme themes[] = {
-    {.background = WHITE, .block = BLACK} // B&W
-    {.background = BLUE, .block = RED} // Blue and Red
-    {.background = MAGENTA, .block = WHITE}
-  }
-
-int COLOR_INDEX = 0; //global variable
-
-
-
 int main(void) {
+    //COLOR_INDEX = 0;
+    int background[] = {WHITE, BLUE, RED};
+    int block[] = {BLACK, RED, WHITE};
     internal_clock();
 
     //TFT LDC instantiation
     initb();
-    togglexn();
+    //set7();
     init_exti();
     
 
@@ -48,15 +34,29 @@ int main(void) {
     setbuf(stdout,0);
     setbuf(stderr,0);
     LCD_Setup();
-    LCD_Clear(themes.bg[COLOR_INDEX]);
+    LCD_Clear(background[COLOR_INDEX]);
+    
 
+    while(!(GPIOB -> ODR & (1 << 7))){
+        nano_wait(1000000);
+        LCD_Clear(background[COLOR_INDEX]);
+        
 
-    int game = moving_rect(0, 0, 320, 100, 10000000, 0, 0, 0, themes.block[COLOR_INDEX]]);
-    if(game == -1){ //game is lost
+    }; //wait until first stack is pressed
+
+    int count = 0;
+    int game = moving_rect(0, 0, 320, 100, 10000000, 0, 0, &count, block[COLOR_INDEX], background[COLOR_INDEX]);
+    if(count > 0){
+         you_win();
+         nano_wait(1000000000);
+         your_score(count);
+     }
+        
+    else{
         you_lose();
-        
-        
     }
+        
+    /*
     if(game == 0){ //game is won
         init_tim6(); //sound when game is won, can be changed with set_freq
         you_win();
@@ -64,5 +64,6 @@ int main(void) {
         // stop_tim6();
        
     }
+        */
     //LCD_Clear(0xF000);
 }

@@ -9,7 +9,7 @@
 
 void nano_wait(int);
 void internal_clock();
-int get_new_len(int x, int x_prev, int x_len, int y, int num_layers);
+int get_new_len(int x, int x_prev, int x_len, int y, int num_layers, int colorBG);
 
 #ifdef SHELL
 #include "stm32f0xx.h"
@@ -19,6 +19,7 @@ int get_new_len(int x, int x_prev, int x_len, int y, int num_layers);
 #include "tty.h"
 #include <stdio.h>
 #include <math.h>
+#include "COLOR_INDEX.h"
 
 #define FIFOSIZE 16
 char serfifo[FIFOSIZE];
@@ -83,12 +84,18 @@ void init_lcd_spi(){
 //============================================================================
 // START OF LCD DISPLAY
 //============================================================================
-int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, int game_over, int count, int color){
-    if(game_over != 0){
+int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, int game_over, int *count, int colorBlock, int colorBG){
+    
+    if(game_over != 0){ //if game over
         return game_over; //even when hardcoded to -1, doesnt do the correct thing in main
     }
-    if (count == 15){
-        return game_over;
+    if (num_layers == 5){
+        LCD_Clear(colorBG);
+        LCD_DrawFillRectangle(x, 300, x+x_len, 320, colorBlock);
+        num_layers = 1;
+        y = 280;
+        *count = *count + 1;
+        //win += 1;
     }
 
     // if(GPIOB -> ODR & (1 << 9)){
@@ -110,8 +117,8 @@ int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, 
     while(!(GPIOB -> ODR & (1 << 7))){ //while the button isnt pressed, the block will shift
         nano_wait(delay);
         if(moving_right){
-            LCD_DrawFillRectangle(x, y, x+x_len, y+20, 0x0f0f);
-            LCD_DrawFillRectangle(0, y, x, y+20, color);
+            LCD_DrawFillRectangle(x, y, x+x_len, y+20, colorBlock);
+            LCD_DrawFillRectangle(0, y, x, y+20, colorBG);
             x++;
             if(x+x_len >= X_MAX-2){
                 moving_left = 1;
@@ -119,8 +126,8 @@ int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, 
             }            
         }
         else if(moving_left){
-            LCD_DrawFillRectangle(x, y, x+x_len, y+20, 0x0f0f);
-            LCD_DrawFillRectangle(x+x_len, y, X_MAX, y+20, color);
+            LCD_DrawFillRectangle(x, y, x+x_len, y+20, colorBlock);
+            LCD_DrawFillRectangle(x+x_len, y, X_MAX, y+20, colorBG);
             x--;
             if(x <= 2){
                 moving_left = 0;
@@ -130,15 +137,14 @@ int moving_rect(int x, int x_prev, int y, int x_len, int delay, int num_layers, 
     }
     GPIOB -> BSRR = GPIO_BSRR_BR_7; //reset bits was bsrr before but idk why
     
-    count += 1;
     nano_wait(300000000);
-    int next_x_len = get_new_len(x, x_prev, x_len, y, num_layers);
+    int next_x_len = get_new_len(x, x_prev, x_len, y, num_layers, colorBG);
     if(next_x_len <= 0){game_over = -1;}
-    game_over = moving_rect(x, x, y-20, next_x_len, delay-1000000, num_layers+1, game_over, count, color);
+    game_over = moving_rect(x, x, y-20, next_x_len, delay-1000000, num_layers+1, game_over, count, colorBlock, colorBG);
     return game_over;
 }
 
-int get_new_len(int x, int x_prev, int x_len, int y, int num_layers){ //this function will return an int storing the horizontal length of the next stack
+int get_new_len(int x, int x_prev, int x_len, int y, int num_layers, int colorBG){ //this function will return an int storing the horizontal length of the next stack
     if(num_layers == 1){return x_len;} //base case, if we're on the first stack, the next stack length will always equal the 1st
     if(x == x_prev){return x_len;} //next base case, when the 2 stacks perfectly align
 
@@ -147,10 +153,10 @@ int get_new_len(int x, int x_prev, int x_len, int y, int num_layers){ //this fun
     if(new_len <= 0){return 0;}
 
     if(x > x_prev){ //if top stack is right of bottom stack, clear out the right part that overflows
-        LCD_DrawFillRectangle(x_prev + x_len, y, x+x_len, y+20, 0xFFFF);
+        LCD_DrawFillRectangle(x_prev + x_len, y, x+x_len, y+20, colorBG);
     }
     else{ //otherwise, we will clear out the left part that overflows
-        LCD_DrawFillRectangle(x, y, x_prev, y+20, 0xFFFF);
+        LCD_DrawFillRectangle(x, y, x_prev, y+20, colorBG);
     }
     return new_len;
 
@@ -164,6 +170,13 @@ void you_win(){
 void you_lose(){
     LCD_Clear(RED);
     LCD_DrawString(80, 100, WHITE, BLACK, "you lose", 16, 0);
+    return;
+}
+void your_score(int score){
+    char buffer[20];
+    sprintf(buffer, "Your score is %d", score);
+    LCD_Clear(YELLOW);
+    LCD_DrawString(80,100, WHITE, BLACK, buffer, 16, 0);
     return;
 }
     //============================================================================
@@ -190,13 +203,10 @@ void initb (){
     
 }
 
-void togglexn() {
+void set7() {
     GPIOB -> BSRR = GPIO_BSRR_BS_7; //switched toggle to just turn on, will be turned off when new level is added
 }
 
-void togglexnSecond(){
-    GPIOB -> BSRR = GPIO_BSRR_BS_9;
-}
 
 void init_exti() {
     RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN; //enable syscfg subsystem
@@ -222,7 +232,7 @@ void init_exti() {
 void EXTI0_1_IRQHandler(){
 
     EXTI->PR = (EXTI_PR_PR0);
-    togglexn(); //pressed variable
+    set7(); //pressed variable
 }
 
 void EXTI4_15_IRQHandler(){
@@ -232,6 +242,7 @@ void EXTI4_15_IRQHandler(){
     if (COLOR_INDEX == 3) {
         COLOR_INDEX = 0;
     }
+
 }
 
 #endif
