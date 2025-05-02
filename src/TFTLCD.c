@@ -181,6 +181,13 @@ void your_score(int score, int level){
     LCD_DrawString(40,140, WHITE, BLACK, buffer, 16, 0);
     return;
 }
+
+void print_high_score(int score, int order){
+    char buffer[20];
+    sprintf(buffer, "%d", score);
+    int height = 140 + 20 * order;
+    LCD_DrawString(40,height, WHITE, BLACK, buffer, 16, 0);
+}
     //============================================================================
 // END OF LCD DISPLAY
 //============================================================================

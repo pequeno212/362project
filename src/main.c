@@ -5,6 +5,7 @@
 #include "lcd.h"
 #include "TFTLCD.h"
 #include "dac.h"
+#include "i2c.h"
 #include "COLOR_INDEX.h"
 
 
@@ -35,6 +36,11 @@ int main(void) {
     setbuf(stderr,0);
     LCD_Setup();
     LCD_Clear(background[COLOR_INDEX]);
+
+    enable_ports_i2c();
+    init_i2c();
+    int valread[8];
+   
     
 
     while(!(GPIOB -> ODR & (1 << 7))){
@@ -48,10 +54,11 @@ int main(void) {
     int level = 1;
     int game = moving_rect(0, 0, 320, 100, 10000000, 0, 0, &count, block[COLOR_INDEX], background[COLOR_INDEX], &level);
     if(level > 1){
-         you_win();
-         nano_wait(1000000000);
-         your_score(count, level);
+        you_win();
+        nano_wait(1000000000);
+        your_score(count, level);
         happy_music();
+        
 
      }
         
@@ -62,15 +69,40 @@ int main(void) {
 
     }
 
-   
-}       
-    /*
-    if(game == 0){ //game is won
-        init_tim6(); //sound when game is won, can be changed with set_freq
-        you_win();
-        // nano_wait(3000000); //does not wait for 3 seconds
-        // stop_tim6();
-       
+
+    for (int i = 0; i < 3; i++) {
+        char read_bytes[4];
+        eeprom_read(i * 4, read_bytes, 4);
+        valread[i] = (read_bytes[0] << 24) | (read_bytes[1] << 16) | (read_bytes[2] << 8) | read_bytes[3];
+
     }
-        */
-    //LCD_Clear(0xF000);
+
+    for (int i = 0; i < 3; i++) {
+        if (count > valread[i]) {
+            for (int j = 2; j > i; j--) {
+                valread[j] = valread[j - 1];
+            }
+            valread[i] = count;
+            break;  
+        }
+    }
+
+
+    for (int i = 0; i < 3; i++) {
+        char score_bytes[4];
+        score_bytes[0] = (valread[i] >> 24) & 0xFF;
+        score_bytes[1] = (valread[i] >> 16) & 0xFF;
+        score_bytes[2] = (valread[i] >> 8) & 0xFF;
+        score_bytes[3] = valread[i] & 0xFF;
+
+        eeprom_write(i * 4, score_bytes, 4);
+        
+    }
+
+    
+    for (int i = 0; i < 3; i++) {
+        print_high_score(valread[i], i);
+    }
+
+
+}
